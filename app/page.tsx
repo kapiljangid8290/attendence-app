@@ -10,18 +10,12 @@ export default function Home() {
   const router = useRouter();
 
   const [mounted, setMounted] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 const [todayRecord, setTodayRecord] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   
-  useEffect(() => {
-    setMounted(true);
-  fetchTodayStatus();
-}, []);
 
-  
-
-  
-  const fetchTodayStatus = async () => {
+    const fetchTodayStatus = async () => {
   const today = new Date().toISOString().split("T")[0];
 
   const {
@@ -45,59 +39,99 @@ const userId = user.id;
   }
 };
 
-  const punchIn = async () => {
-    setLoading(true);
 
-    const today = new Date().toISOString().split("T")[0];
-    const userId = "00000000-0000-0000-0000-000000000001";
+ useEffect(() => {
+  setMounted(true);
 
-    // 1️⃣ Check if already punched in today
-    const { data: existing, error: checkError } = await supabase
-      .from("attendance")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("date", today);
+  const checkAuthAndFetch = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (checkError) {
-      console.error("CHECK ERROR:", checkError);
-      alert(checkError.message);
-      setLoading(false);
+    if (!user) {
+      router.replace("/login");
       return;
     }
 
-    if (existing && existing.length > 0) {
-      alert("You have already punched in today.");
-      setLoading(false);
-      return;
-    }
-
-    // 2️⃣ Insert punch-in record
-    const { data, error } = await supabase
-      .from("attendance")
-      .insert({
-        user_id: userId,
-        punch_in: new Date().toISOString(),
-        date: today,
-      })
-      .select();
-
-    if (error) {
-      console.error("INSERT ERROR:", error);
-      alert(error.message);
-    } else {
-      console.log("Inserted row:", data);
-      alert("Punch-in successful!");
-    }
-
-    setLoading(false);
+    await fetchTodayStatus();
   };
+
+  checkAuthAndFetch();
+}, []);
+
+  
+
+  
+
+
+  const punchIn = async () => {
+  setLoading(true);
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert("Not logged in");
+    setLoading(false);
+    return;
+  }
+
+  const userId = user.id;
+
+  const { data: existing, error: checkError } = await supabase
+    .from("attendance")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("date", today);
+
+  if (checkError) {
+    alert(checkError.message);
+    setLoading(false);
+    return;
+  }
+
+  if (existing && existing.length > 0) {
+    alert("You have already punched in today.");
+    setLoading(false);
+    return;
+  }
+
+  const { error } = await supabase.from("attendance").insert({
+    user_id: userId,
+    punch_in: new Date().toISOString(),
+    date: today,
+  });
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Punch-in successful!");
+    fetchTodayStatus();
+  }
+
+  setLoading(false);
+};
+
 const punchOut = async () => {
   setLoading(true);
 
   const today = new Date().toISOString().split("T")[0];
-  const userId = "00000000-0000-0000-0000-000000000001";
 
-  // Find today's record
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert("Not logged in");
+    setLoading(false);
+    return;
+  }
+
+  const userId = user.id;
+
   const { data, error } = await supabase
     .from("attendance")
     .select("*")
@@ -126,13 +160,14 @@ const punchOut = async () => {
 
   if (updateError) {
     alert("Error punching out");
-    console.error(updateError);
   } else {
     alert("Punch-out successful!");
+    fetchTodayStatus();
   }
 
   setLoading(false);
 };
+
 if (!mounted) return null;
   return (
     
