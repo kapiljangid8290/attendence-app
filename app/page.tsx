@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
+const [todayRecord, setTodayRecord] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  
   useEffect(() => {
+    setMounted(true);
   fetchTodayStatus();
 }, []);
 
-  const [todayRecord, setTodayRecord] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  
 
   
   const fetchTodayStatus = async () => {
@@ -116,10 +120,42 @@ const punchOut = async () => {
 
   setLoading(false);
 };
-
+if (!mounted) return null;
   return (
+    
+
     <main style={{ padding: 40 }}>
       <h1>Attendance App</h1>
+<div style={{ marginBottom: 20 }}>
+  <h3>Today's Status</h3>
+
+  {!todayRecord && <p>❌ Not punched in yet</p>}
+
+  {todayRecord && (
+    <>
+      <p>
+        Status:{" "}
+        {todayRecord.punch_out ? "✅ Checked out" : "🟢 Working"}
+      </p>
+
+      <p>
+        Punch In:{" "}
+        {todayRecord.punch_in
+  ? todayRecord.punch_in.slice(11, 19)
+  : "-"}
+
+      </p>
+
+      <p>
+        Punch Out:{" "}
+       {todayRecord.punch_out
+  ? todayRecord.punch_out.slice(11, 19)
+  : "-"}
+
+      </p>
+    </>
+  )}
+</div>
 
       <button onClick={punchIn} disabled={loading}>
         {loading ? "Punching in..." : "Punch In"}
