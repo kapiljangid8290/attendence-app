@@ -296,6 +296,8 @@ fetchWeeklyMonthlyTotals();
       >
         Punch Out
       </button>
+      <p className="text-red-500 font-bold">Tailwind works</p>
+
     </main>
   );
 }
