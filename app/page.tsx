@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedCounter from "@/app/components/AnimatedCounter"
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
@@ -232,72 +233,129 @@ fetchWeeklyMonthlyTotals();
   if (!mounted) return null;
 
   return (
-    <main style={{ padding: 40 }}>
-      <h1>Attendance App</h1>
+  <div className="min-h-screen relative overflow-hidden
+    bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300
+    flex items-center justify-center px-4">
 
-      <div style={{ marginBottom: 20 }}>
-        <h3>Today's Status</h3>
+    {/* Floating blobs */}
+    <div className="absolute w-96 h-96 bg-pink-400/40 rounded-full blur-3xl -top-20 -left-20 animate-pulse" />
+    <div className="absolute w-96 h-96 bg-purple-400/40 rounded-full blur-3xl bottom-0 right-0 animate-pulse" />
 
-        {!todayRecord && <p>❌ Not punched in yet</p>}
+    {/* Dashboard Card */}
+    <div className="relative z-10 w-full max-w-5xl p-8 md:p-10 rounded-3xl
+      bg-white/30 backdrop-blur-xl border border-white/30
+      shadow-xl space-y-8">
 
-        {todayRecord && (
-          <>
-            <p>
-              Status:{" "}
-              {todayRecord.punch_out ? "✅ Checked out" : "🟢 Working"}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Attendance Dashboard
+        </h1>
+
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            router.push("/login");
+          }}
+          className="text-sm underline hover:text-black transition"
+        >
+          Logout
+        </button>
+      </div>
+
+      {/* Top Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* Today Status */}
+        <div className="bg-white/60 rounded-2xl p-6 shadow-sm space-y-3">
+          <h2 className="font-medium text-gray-800">Today</h2>
+
+          {!todayRecord && (
+            <p className="text-sm text-gray-500">
+              ❌ Not punched in yet
             </p>
+          )}
 
-            <p>
-              Punch In:{" "}
-              {todayRecord.punch_in
-                ? new Date(todayRecord.punch_in).toLocaleTimeString()
-                : "-"}
-            </p>
-
-            <p>
-              Punch Out:{" "}
-              {todayRecord.punch_out
-                ? new Date(todayRecord.punch_out).toLocaleTimeString()
-                : "-"}
-            </p>
-
-            {todayRecord.punch_out && (
-              <p>
-                ⏱️ <strong>Total Hours:</strong>{" "}
-                {calculateDuration(
-                  todayRecord.punch_in,
-                  todayRecord.punch_out
+          {todayRecord && (
+            <>
+              <p className="text-sm">
+                <span className="font-medium">Status:</span>{" "}
+                {todayRecord.punch_out ? (
+                  <span className="text-green-600">Checked out</span>
+                ) : (
+                  <span className="text-blue-600">Working</span>
                 )}
               </p>
-            )}
-          </>
-        )}
+
+              <p className="text-sm">
+                <span className="font-medium">Punch In:</span>{" "}
+                {new Date(todayRecord.punch_in).toLocaleTimeString()}
+              </p>
+
+              <p className="text-sm">
+                <span className="font-medium">Punch Out:</span>{" "}
+                {todayRecord.punch_out
+                  ? new Date(todayRecord.punch_out).toLocaleTimeString()
+                  : "-"}
+              </p>
+
+              {todayRecord.punch_out && (
+                <p className="pt-2 text-sm">
+                  ⏱️ <span className="font-medium">Total:</span>{" "}
+                  {calculateDuration(
+                    todayRecord.punch_in,
+                    todayRecord.punch_out
+                  )}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Weekly Summary */}
+        <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-gray-500">This Week</p>
+          <p className="text-3xl font-semibold mt-2">
+            <AnimatedCounter value={weeklyTotal} suffix="h" />
+          </p>
+        </div>
+
+        {/* Monthly Summary */}
+        <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-gray-500">This Month</p>
+          <p className="text-3xl font-semibold mt-2">
+            <AnimatedCounter value={monthlyTotal} suffix="h" />
+          </p>
+        </div>
       </div>
-<div style={{ marginTop: 30 }}>
-  <h3>📊 Summary</h3>
 
-  <p>
-    <strong>This Week:</strong> {weeklyTotal}
-  </p>
+      {/* Actions */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <button
+          onClick={punchIn}
+          disabled={loading}
+          className="flex-1 py-3 rounded-full bg-black text-white font-medium
+            transition-all duration-300
+            hover:bg-gray-900 hover:shadow-lg hover:scale-[1.02]
+            disabled:opacity-50"
+        >
+          Punch In
+        </button>
 
-  <p>
-    <strong>This Month:</strong> {monthlyTotal}
-  </p>
-</div>
+        <button
+          onClick={punchOut}
+          disabled={loading}
+          className="flex-1 py-3 rounded-full bg-gray-800 text-white font-medium
+            transition-all duration-300
+            hover:bg-black hover:shadow-lg hover:scale-[1.02]
+            disabled:opacity-50"
+        >
+          Punch Out
+        </button>
+      </div>
 
-      <button onClick={punchIn} disabled={loading}>
-        {loading ? "Punching in..." : "Punch In"}
-      </button>
+    </div>
+  </div>
+);
 
-      <button
-        onClick={punchOut}
-        disabled={loading}
-        style={{ marginLeft: 10 }}
-      >
-        Punch Out
-      </button>
-      <p className="text-red-500 font-bold">Tailwind works</p>
-
-    </main>
-  );
 }

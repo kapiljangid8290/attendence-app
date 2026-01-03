@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
@@ -11,9 +12,13 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSignup = async () => {
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
@@ -24,11 +29,16 @@ export default function Signup() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+      },
     });
 
-    if (error) alert(error.message);
-    else router.push("/login");
+    if (error) {
+      alert(error.message);
+    } else {
+      router.push("/login");
+    }
 
     setLoading(false);
   };
@@ -36,8 +46,8 @@ export default function Signup() {
   const inputClass =
     "w-full px-5 py-3 rounded-full bg-white/80 text-gray-800 " +
     "transition-all duration-200 " +
-    "focus:outline-none focus:bg-white " +
-    "focus:ring-4 focus:ring-black/20";
+    "focus:outline-none focus:ring-4 focus:ring-black/20 " +
+    "hover:bg-white";
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden
@@ -57,10 +67,15 @@ export default function Signup() {
           Sign up
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* FORM */}
+        <form
+          onSubmit={handleSignup}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
           <input
             className={inputClass}
             placeholder="Full Name"
+            required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
@@ -68,40 +83,73 @@ export default function Signup() {
           <input
             className={inputClass}
             placeholder="Email Address"
+            type="email"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <input
-            className={inputClass}
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          {/* Password */}
+          <div className="relative">
+            <input
+              className={inputClass}
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2
+                text-gray-500 hover:text-black transition"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
 
-          <input
-            className={inputClass}
-            type="password"
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-        </div>
+          {/* Confirm Password */}
+          <div className="relative">
+            <input
+              className={inputClass}
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm Password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+              className="absolute right-4 top-1/2 -translate-y-1/2
+                text-gray-500 hover:text-black transition"
+            >
+              {showConfirmPassword ? (
+                <EyeOff size={18} />
+              ) : (
+                <Eye size={18} />
+              )}
+            </button>
+          </div>
 
-        <button
-          onClick={handleSignup}
-          disabled={loading}
-          className="mt-8 w-full py-3 rounded-full bg-black text-white font-medium
-            transition-all duration-300
-            hover:bg-gray-900 hover:shadow-lg hover:scale-[1.02]
-            active:scale-[0.98]"
-        >
-          {loading ? "Creating account..." : "Create Account"}
-        </button>
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="md:col-span-2 mt-4 w-full py-3 rounded-full bg-black text-white font-medium
+              transition-all duration-300
+              hover:bg-gray-900 hover:shadow-lg hover:scale-[1.02]
+              active:scale-[0.98]"
+          >
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
+        </form>
 
         <p className="text-center text-sm text-gray-800 mt-6">
-          or{" "}
+          Already have an account?{" "}
           <span
             onClick={() => router.push("/login")}
             className="underline cursor-pointer hover:text-black transition"

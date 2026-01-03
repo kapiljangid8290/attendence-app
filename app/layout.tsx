@@ -1,25 +1,22 @@
-import type { ReactNode } from "react";
+"use client";
+
 import "./globals.css";
+import { AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <header
-          style={{
-            padding: "15px",
-            background: "#111",
-            color: "#fff",
-          }}
-        >
-          Attendance App
-        </header>
+  const pathname = usePathname();
 
-        {children}
+  return (
+    <html lang="en">
+      <body>
+        <AnimatePresence mode="wait">
+          <div key={pathname}>{children}</div>
+        </AnimatePresence>
       </body>
     </html>
   );
