@@ -11,8 +11,12 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [weeklyTotal, setWeeklyTotal] = useState("0h 0m");
-const [monthlyTotal, setMonthlyTotal] = useState("0h 0m");
+  const [weeklyTotal, setWeeklyTotal] = useState<number>(0);   // minutes
+const [monthlyTotal, setMonthlyTotal] = useState<number>(0); // minutes
+const isPunchedIn = !!todayRecord?.punch_in;
+const isPunchedOut = !!todayRecord?.punch_out;
+
+
 
 
   // ✅ Calculate total duration
@@ -30,24 +34,20 @@ const [monthlyTotal, setMonthlyTotal] = useState("0h 0m");
 
     return `${hours}h ${minutes}m`;
   };
-  const sumDurations = (records: any[]) => {
-  let totalMs = 0;
+  const sumDurations = (records: any[]): number => {
+  let totalMinutes = 0;
 
   records.forEach((r) => {
     if (r.punch_in && r.punch_out) {
-      totalMs +=
-        new Date(r.punch_out).getTime() -
-        new Date(r.punch_in).getTime();
+      const start = new Date(r.punch_in).getTime();
+      const end = new Date(r.punch_out).getTime();
+      totalMinutes += Math.floor((end - start) / (1000 * 60));
     }
   });
 
-  const hours = Math.floor(totalMs / (1000 * 60 * 60));
-  const minutes = Math.floor(
-    (totalMs % (1000 * 60 * 60)) / (1000 * 60)
-  );
-
-  return `${hours}h ${minutes}m`;
+  return totalMinutes;
 };
+
 
 
   // ✅ Fetch today's record
@@ -278,14 +278,24 @@ fetchWeeklyMonthlyTotals();
 
           {todayRecord && (
             <>
-              <p className="text-sm">
-                <span className="font-medium">Status:</span>{" "}
-                {todayRecord.punch_out ? (
-                  <span className="text-green-600">Checked out</span>
-                ) : (
-                  <span className="text-blue-600">Working</span>
-                )}
-              </p>
+              <div className="flex items-center gap-2">
+  <span className="text-sm font-medium text-gray-600">Status</span>
+
+  {todayRecord.punch_out ? (
+    <span className="px-3 py-1 rounded-full text-sm font-semibold
+      bg-red-500/10 text-red-600
+      shadow-[0_0_15px_rgba(239,68,68,0.35)]">
+      Checked Out
+    </span>
+  ) : (
+    <span className="px-3 py-1 rounded-full text-sm font-semibold
+      bg-green-500/10 text-green-600
+      shadow-[0_0_15px_rgba(34,197,94,0.35)]">
+      Working
+    </span>
+  )}
+</div>
+
 
               <p className="text-sm">
                 <span className="font-medium">Punch In:</span>{" "}
@@ -316,7 +326,15 @@ fetchWeeklyMonthlyTotals();
         <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
           <p className="text-sm text-gray-500">This Week</p>
           <p className="text-3xl font-semibold mt-2">
-            <AnimatedCounter value={parseInt(weeklyTotal)} suffix="h" />
+            <AnimatedCounter
+  value={Math.floor(weeklyTotal / 60)}
+  suffix="h"
+/>
+<span className="text-sm text-gray-500">
+  {weeklyTotal % 60}m
+</span>
+
+
           </p>
         </div>
 
@@ -324,34 +342,48 @@ fetchWeeklyMonthlyTotals();
         <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
           <p className="text-sm text-gray-500">This Month</p>
           <p className="text-3xl font-semibold mt-2">
-            <AnimatedCounter value={parseInt(monthlyTotal)} suffix="h" />
+           <AnimatedCounter
+  value={Math.floor(monthlyTotal / 60)}
+  suffix="h"
+/>
+<span className="text-sm text-gray-500">
+  {monthlyTotal % 60}m
+</span>
+
+
           </p>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex flex-col md:flex-row gap-4">
-        <button
-          onClick={punchIn}
-          disabled={loading}
-          className="flex-1 py-3 rounded-full bg-black text-white font-medium
-            transition-all duration-300
-            hover:bg-gray-900 hover:shadow-lg hover:scale-[1.02]
-            disabled:opacity-50"
-        >
-          Punch In
-        </button>
+       <button
+  onClick={punchIn}
+  disabled={isPunchedIn}
+  className={`flex-1 py-4 rounded-full font-semibold text-white transition-all
+    ${
+      isPunchedIn
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-black hover:scale-[1.02] active:scale-[0.98]"
+    }`}
+>
+  {isPunchedIn ? "Already Punched In" : "Punch In"}
+</button>
 
-        <button
-          onClick={punchOut}
-          disabled={loading}
-          className="flex-1 py-3 rounded-full bg-gray-800 text-white font-medium
-            transition-all duration-300
-            hover:bg-black hover:shadow-lg hover:scale-[1.02]
-            disabled:opacity-50"
-        >
-          Punch Out
-        </button>
+
+       <button
+  onClick={punchOut}
+  disabled={!isPunchedIn || isPunchedOut}
+  className={`flex-1 py-4 rounded-full font-semibold text-white transition-all
+    ${
+      !isPunchedIn || isPunchedOut
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-slate-900 hover:scale-[1.02] active:scale-[0.98]"
+    }`}
+>
+  {isPunchedOut ? "Already Punched Out" : "Punch Out"}
+</button>
+
       </div>
 
     </div>
