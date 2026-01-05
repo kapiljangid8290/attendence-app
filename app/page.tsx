@@ -316,7 +316,7 @@ fetchWeeklyMonthlyTotals();
         <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
           <p className="text-sm text-gray-500">This Week</p>
           <p className="text-3xl font-semibold mt-2">
-            <AnimatedCounter value={weeklyTotal} suffix="h" />
+            <AnimatedCounter value={parseInt(weeklyTotal)} suffix="h" />
           </p>
         </div>
 
@@ -324,7 +324,7 @@ fetchWeeklyMonthlyTotals();
         <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
           <p className="text-sm text-gray-500">This Month</p>
           <p className="text-3xl font-semibold mt-2">
-            <AnimatedCounter value={monthlyTotal} suffix="h" />
+            <AnimatedCounter value={parseInt(monthlyTotal)} suffix="h" />
           </p>
         </div>
       </div>
