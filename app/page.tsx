@@ -1,5 +1,6 @@
 "use client";
 
+import LeaveModal from "@/app/components/LeaveModal";
 import AnimatedCounter from "@/app/components/AnimatedCounter"
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -7,7 +8,9 @@ import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
-
+  const [leaveOpen, setLeaveOpen] = useState(false);
+const [liveMinutes, setLiveMinutes] = useState<number>(0);
+const [leaves, setLeaves] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -16,7 +19,29 @@ const [monthlyTotal, setMonthlyTotal] = useState<number>(0); // minutes
 const isPunchedIn = !!todayRecord?.punch_in;
 const isPunchedOut = !!todayRecord?.punch_out;
 
+const minutesBetweenNow = (start: string) => {
+  const startTime = new Date(start).getTime();
+  const now = Date.now();
+  return Math.floor((now - startTime) / (1000 * 60));
+};
 
+const fetchLeaves = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  const { data, error } = await supabase
+    .from("leave_requests")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (!error && data) {
+    setLeaves(data);
+  }
+};
 
 
   // ✅ Calculate total duration
@@ -114,26 +139,34 @@ const isPunchedOut = !!todayRecord?.punch_out;
 
 
   // ✅ Auth check + fetch
-  useEffect(() => {
-    setMounted(true);
+ useEffect(() => {
+  let active = true;
+  setMounted(true);
 
-    const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  const init = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
-      await fetchTodayStatus();
-await fetchWeeklyMonthlyTotals();
+    if (!active) return;
 
-    };
+    await fetchTodayStatus();
+    await fetchWeeklyMonthlyTotals();
+    await fetchLeaves();
+  };
 
-    init();
-  }, []);
+  init();
+
+  return () => {
+    active = false;
+  };
+}, []);
+
 
   // ✅ Punch in
   const punchIn = async () => {
@@ -385,9 +418,65 @@ fetchWeeklyMonthlyTotals();
 </button>
 
       </div>
+<button
+  onClick={() => setLeaveOpen(true)}
+  className="mt-4 w-full py-3 rounded-full border border-black/20
+    bg-white/60 backdrop-blur text-black font-medium
+    transition-all duration-300
+    hover:bg-white hover:shadow-lg hover:-translate-y-[1px]"
+>
+  Request Leave
+</button>
 
     </div>
+    <LeaveModal
+  open={leaveOpen}
+  onClose={() => setLeaveOpen(false)}
+/>
+{/* Leave History */}
+<div className="mt-12">
+  <h2 className="text-xl font-semibold mb-4">My Leave Requests</h2>
+
+  {leaves.length === 0 && (
+    <p className="text-gray-500">No leave requests yet</p>
+  )}
+
+  <div className="space-y-4">
+    {leaves.map((leave) => (
+      <div
+        key={leave.id}
+        className="flex items-center justify-between
+          rounded-2xl bg-white/60 backdrop-blur
+          border border-white/30 p-5 shadow-sm"
+      >
+        <div>
+          <p className="font-medium capitalize">
+            {leave.leave_type} Leave
+          </p>
+          <p className="text-sm text-gray-600">
+            {leave.start_date} → {leave.end_date}
+          </p>
+        </div>
+
+        <span
+          className={`px-3 py-1 rounded-full text-sm font-medium
+            ${
+              leave.status === "approved"
+                ? "bg-green-500/10 text-green-600"
+                : leave.status === "rejected"
+                ? "bg-red-500/10 text-red-600"
+                : "bg-yellow-500/10 text-yellow-600"
+            }`}
+        >
+          {leave.status}
+        </span>
+      </div>
+    ))}
   </div>
+</div>
+
+  </div>
+  
 );
 
 }
