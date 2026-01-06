@@ -6,9 +6,14 @@ import { useState } from "react";
 type Props = {
   open: boolean;
   onClose: () => void;
+  fetchLeaveRequests: () => Promise<void>;
 };
 
-export default function LeaveModal({ open, onClose }: Props) {
+export default function LeaveModal({
+  open,
+  onClose,
+  fetchLeaveRequests,
+}: Props) {
   const [type, setType] = useState<"paid" | "sick" | "unpaid">("paid");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -43,9 +48,11 @@ const submitLeave = async () => {
   });
 
   if (error) {
+    
     alert(error.message);
   } else {
     alert("Leave request submitted");
+    await fetchLeaveRequests();
     onClose();
     setFromDate("");
     setToDate("");

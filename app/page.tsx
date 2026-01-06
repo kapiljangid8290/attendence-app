@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const router = useRouter();
   const [leaveOpen, setLeaveOpen] = useState(false);
 const [liveMinutes, setLiveMinutes] = useState<number>(0);
@@ -18,6 +19,7 @@ const [leaves, setLeaves] = useState<any[]>([]);
 const [monthlyTotal, setMonthlyTotal] = useState<number>(0); // minutes
 const isPunchedIn = !!todayRecord?.punch_in;
 const isPunchedOut = !!todayRecord?.punch_out;
+
 
 const minutesBetweenNow = (start: string) => {
   const startTime = new Date(start).getTime();
@@ -138,8 +140,28 @@ const fetchLeaves = async () => {
 };
 
 
+const fetchLeaveRequests = async () => {
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  const { data, error } = await supabase
+    .from("leave_requests")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("start_date", { ascending: false });
+
+  if (!error && data) {
+    setLeaveRequests(data);
+  }
+};
+
   // ✅ Auth check + fetch
  useEffect(() => {
+  fetchLeaveRequests();
   let active = true;
   setMounted(true);
 
@@ -266,24 +288,28 @@ fetchWeeklyMonthlyTotals();
   if (!mounted) return null;
 
   return (
-  <div className="min-h-screen relative overflow-hidden
-    bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300
-    flex items-center justify-center px-4">
+  <div className="min-h-screen bg-gradient-to-br from-pink-200 via-purple-200 to-indigo-200 flex items-center justify-center p-8">
 
     {/* Floating blobs */}
     <div className="absolute w-96 h-96 bg-pink-400/40 rounded-full blur-3xl -top-20 -left-20 animate-pulse" />
     <div className="absolute w-96 h-96 bg-purple-400/40 rounded-full blur-3xl bottom-0 right-0 animate-pulse" />
 
     {/* Dashboard Card */}
-    <div className="relative z-10 w-full max-w-5xl p-8 md:p-10 rounded-3xl
-      bg-white/30 backdrop-blur-xl border border-white/30
-      shadow-xl space-y-8">
+    <div className="w-full max-w-6xl rounded-3xl bg-white/60 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] p-10">
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Attendance Dashboard
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Attendance Dashboard
+          </h1>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium
+            ${todayRecord?.punch_out
+              ? "bg-red-100 text-red-600"
+              : "bg-green-100 text-green-600"}`}>
+            {todayRecord?.punch_out ? "Checked Out" : "Checked In"}
+          </span>
+        </div>
 
         <button
           onClick={async () => {
@@ -297,10 +323,10 @@ fetchWeeklyMonthlyTotals();
       </div>
 
       {/* Top Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {/* Today Status */}
-        <div className="bg-white/60 rounded-2xl p-6 shadow-sm space-y-3">
+        <div className="rounded-2xl bg-white shadow-lg p-6 ring-1 ring-black/5 space-y-3">
           <h2 className="font-medium text-gray-800">Today</h2>
 
           {!todayRecord && (
@@ -356,9 +382,9 @@ fetchWeeklyMonthlyTotals();
         </div>
 
         {/* Weekly Summary */}
-        <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
+        <div className="rounded-2xl bg-white/80 p-6 shadow-md ring-1 ring-black/5">
           <p className="text-sm text-gray-500">This Week</p>
-          <p className="text-3xl font-semibold mt-2">
+          <p className="text-4xl font-semibold tracking-tight">
             <AnimatedCounter
   value={Math.floor(weeklyTotal / 60)}
   suffix="h"
@@ -372,9 +398,9 @@ fetchWeeklyMonthlyTotals();
         </div>
 
         {/* Monthly Summary */}
-        <div className="bg-white/60 rounded-2xl p-6 shadow-sm">
+        <div className="rounded-2xl bg-white/80 p-6 shadow-md ring-1 ring-black/5">
           <p className="text-sm text-gray-500">This Month</p>
-          <p className="text-3xl font-semibold mt-2">
+          <p className="text-4xl font-semibold tracking-tight">
            <AnimatedCounter
   value={Math.floor(monthlyTotal / 60)}
   suffix="h"
@@ -389,11 +415,14 @@ fetchWeeklyMonthlyTotals();
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="mt-10 flex flex-col md:flex-row gap-4">
        <button
   onClick={punchIn}
   disabled={isPunchedIn}
-  className={`flex-1 py-4 rounded-full font-semibold text-white transition-all
+  className={`flex-1 h-14 rounded-full bg-black text-white font-medium
+  transition-all duration-300
+  hover:scale-[1.03] hover:shadow-xl
+  active:scale-[0.97] disabled:opacity-50
     ${
       isPunchedIn
         ? "bg-gray-400 cursor-not-allowed"
@@ -407,7 +436,10 @@ fetchWeeklyMonthlyTotals();
        <button
   onClick={punchOut}
   disabled={!isPunchedIn || isPunchedOut}
-  className={`flex-1 py-4 rounded-full font-semibold text-white transition-all
+  className={`flex-1 h-14 rounded-full bg-slate-800 text-white font-medium
+  transition-all duration-300
+  hover:scale-[1.03] hover:shadow-xl
+  active:scale-[0.97] disabled:opacity-50
     ${
       !isPunchedIn || isPunchedOut
         ? "bg-gray-400 cursor-not-allowed"
@@ -428,55 +460,54 @@ fetchWeeklyMonthlyTotals();
   Request Leave
 </button>
 
+      {/* Leave History */}
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold mb-4">My Leave Requests</h2>
+
+        {leaves.length === 0 && (
+          <p className="text-gray-500">No leave requests yet</p>
+        )}
+
+        <div className="space-y-3">
+          {leaves.map((leave) => (
+            <div
+              key={leave.id}
+              className="flex items-center justify-between
+                rounded-2xl bg-white/60 backdrop-blur
+                border border-white/30 p-5 shadow-sm"
+            >
+              <div>
+                <p className="font-medium capitalize">
+                  {leave.leave_type} Leave
+                </p>
+                <p className="text-sm text-gray-600">
+                  {leave.start_date} → {leave.end_date}
+                </p>
+              </div>
+
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium
+                  ${
+                    leave.status === "approved"
+                      ? "bg-green-500/10 text-green-600"
+                      : leave.status === "rejected"
+                      ? "bg-red-500/10 text-red-600"
+                      : "bg-yellow-500/10 text-yellow-600"
+                  }`}
+              >
+                {leave.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
     <LeaveModal
-  open={leaveOpen}
-  onClose={() => setLeaveOpen(false)}
-/>
-{/* Leave History */}
-<div className="mt-12">
-  <h2 className="text-xl font-semibold mb-4">My Leave Requests</h2>
-
-  {leaves.length === 0 && (
-    <p className="text-gray-500">No leave requests yet</p>
-  )}
-
-  <div className="space-y-4">
-    {leaves.map((leave) => (
-      <div
-        key={leave.id}
-        className="flex items-center justify-between
-          rounded-2xl bg-white/60 backdrop-blur
-          border border-white/30 p-5 shadow-sm"
-      >
-        <div>
-          <p className="font-medium capitalize">
-            {leave.leave_type} Leave
-          </p>
-          <p className="text-sm text-gray-600">
-            {leave.start_date} → {leave.end_date}
-          </p>
-        </div>
-
-        <span
-          className={`px-3 py-1 rounded-full text-sm font-medium
-            ${
-              leave.status === "approved"
-                ? "bg-green-500/10 text-green-600"
-                : leave.status === "rejected"
-                ? "bg-red-500/10 text-red-600"
-                : "bg-yellow-500/10 text-yellow-600"
-            }`}
-        >
-          {leave.status}
-        </span>
-      </div>
-    ))}
+      open={leaveOpen}
+      onClose={() => setLeaveOpen(false)}
+      fetchLeaveRequests={fetchLeaveRequests}
+    />
   </div>
-</div>
-
-  </div>
-  
 );
 
 }
