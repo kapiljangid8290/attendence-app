@@ -1,5 +1,6 @@
 "use client";
 
+import RegularizationModal from "@/app/components/RegularizationModal";
 import LeaveModal from "@/app/components/LeaveModal";
 import AnimatedCounter from "@/app/components/AnimatedCounter"
 import { useEffect, useState } from "react";
@@ -19,6 +20,9 @@ const [leaves, setLeaves] = useState<any[]>([]);
 const [monthlyTotal, setMonthlyTotal] = useState<number>(0); // minutes
 const isPunchedIn = !!todayRecord?.punch_in;
 const isPunchedOut = !!todayRecord?.punch_out;
+const [openRegModal, setOpenRegModal] = useState(false);
+const [regularizations, setRegularizations] = useState<any[]>([]);
+
 
 
 const minutesBetweenNow = (start: string) => {
@@ -159,9 +163,28 @@ const fetchLeaveRequests = async () => {
   }
 };
 
+const fetchRegularizations = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  const { data, error } = await supabase
+    .from("attendance_regularizations")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (!error && data) {
+    setRegularizations(data);
+  }
+};
+
   // ✅ Auth check + fetch
  useEffect(() => {
   fetchLeaveRequests();
+  fetchRegularizations();
   let active = true;
   setMounted(true);
 
@@ -450,6 +473,15 @@ fetchWeeklyMonthlyTotals();
 </button>
 
       </div>
+
+      <button
+        onClick={() => setOpenRegModal(true)}
+        className="mt-6 w-full py-3 rounded-xl bg-white text-black font-medium
+        hover:shadow transition"
+      >
+        Request Regularization
+      </button>
+
 <button
   onClick={() => setLeaveOpen(true)}
   className="mt-4 w-full py-3 rounded-full border border-black/20
@@ -501,11 +533,57 @@ fetchWeeklyMonthlyTotals();
           ))}
         </div>
       </div>
+
+      {/* Regularization History */}
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold mb-4">My Regularization Requests</h2>
+
+        {regularizations.length === 0 && (
+          <p className="text-gray-500">No regularization requests yet</p>
+        )}
+
+        <div className="space-y-3">
+          {regularizations.map((reg) => (
+            <div
+              key={reg.id}
+              className="flex items-center justify-between
+                rounded-2xl bg-white/60 backdrop-blur
+                border border-white/30 p-5 shadow-sm"
+            >
+              <div>
+                <p className="font-medium">{reg.date}</p>
+                <p className="text-sm text-gray-600">
+                  {reg.punch_in} → {reg.punch_out}
+                </p>
+                <p className="text-sm text-gray-500">{reg.reason || "-"}</p>
+              </div>
+
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium
+                  ${
+                    reg.status === "approved"
+                      ? "bg-green-500/10 text-green-600"
+                      : reg.status === "rejected"
+                      ? "bg-red-500/10 text-red-600"
+                      : "bg-yellow-500/10 text-yellow-600"
+                  }`}
+              >
+                {reg.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
     <LeaveModal
       open={leaveOpen}
       onClose={() => setLeaveOpen(false)}
       fetchLeaveRequests={fetchLeaveRequests}
+    />
+    <RegularizationModal
+      open={openRegModal}
+      onClose={() => setOpenRegModal(false)}
+      fetchRegularizations={fetchRegularizations}
     />
   </div>
 );

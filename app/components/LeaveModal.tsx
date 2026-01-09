@@ -38,11 +38,18 @@ const submitLeave = async () => {
     return;
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("manager_id")
+    .eq("id", user.id)
+    .single();
+
   const { error } = await supabase.from("leave_requests").insert({
     user_id: user.id,
-    leave_type: type,        // paid | sick | unpaid
-    start_date: fromDate,
-    end_date: toDate,
+    manager_id: profile?.manager_id,
+    type,
+    from_date: fromDate,
+    to_date: toDate,
     reason,
     status: "pending",
   });
