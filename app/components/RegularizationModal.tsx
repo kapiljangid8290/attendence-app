@@ -27,19 +27,37 @@ export default function RegularizationModal({
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
-    const { data: profile } = await supabase
+    // ✅ STEP 1: Fetch employee profile to get manager_id
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("manager_id")
       .eq("id", user.id)
       .single();
 
+    // ⚠️ STEP 2: Safety check - ensure manager_id exists
+    if (!profile?.manager_id) {
+      alert("No manager assigned. Contact admin.");
+      setLoading(false);
+      return;
+    }
+
+    if (profileError) {
+      alert("Error fetching profile: " + profileError.message);
+      setLoading(false);
+      return;
+    }
+
+    // ✅ STEP 3: Use the manager_id from profile when inserting
     const { error } = await supabase
       .from("attendance_regularizations")
       .insert({
         user_id: user.id,
-        manager_id: profile?.manager_id,
+        manager_id: profile.manager_id,
         date,
         punch_in: punchIn || null,
         punch_out: punchOut || null,
